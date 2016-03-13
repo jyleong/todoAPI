@@ -1,23 +1,13 @@
 var express = require('express');
+var bodyParser = require('body-parser');
+
 var app = express();
 var PORT = process.env.PORT || 3000;
 // a unique identified like in databases,a description, a completed boolean, a time?
-var todos = [{
-	id: 1,
-	description: "pick up the car",
-	completed: false
+var todos = [];
+var todoNextId = 1; // to increment todo id as they get new id
 
-}, {
-	id: 2,
-	description: 'make lunch',
-	completed: false
-}, {
-	id: 3,
-	description: 'do some udemy',
-	completed: false
-}
-];
-
+app.use(bodyParser.json());
 app.get('/',function(req,res) {
 	res.send('TODO api root');
 });
@@ -44,6 +34,19 @@ app.get('/todos/:id', function(req,res) {
 		res.status(404).send();
 	}
 })
+
+// POST, can take data
+// POST /todos/:id <- id generated after todo is created
+app.post('/todos', function(req, res) {
+	var body = req.body;
+	
+	
+	var todoItem = body;
+	todoItem["id"] = todoNextId++;
+	todos.push(todoItem);
+	res.json(todoItem);
+});
+
 app.listen(PORT, function() {
 	console.log('Express listening on port: ' + PORT + '!');
 })
