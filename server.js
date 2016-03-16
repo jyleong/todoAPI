@@ -15,8 +15,25 @@ app.get('/', function(req, res) {
 
 // GET /todos?completed=true&q=house
 app.get('/todos', function(req, res) {
-	var queryParams = req.query;
-	var filteredTodos = todos;
+	var query = req.query;
+	var where = {};
+	if (query.hasOwnProperty('completed') && query.completed === 'true') {
+		where.completed = true;
+	} else if (query.hasOwnProperty('completed') && query.completed === 'false') {
+		where.completed = false;
+	}
+	if (query.hasOwnProperty('q') && query.q.length > 0) {
+		where.description = {
+			$like: '%' + query.q + '%'
+		}
+	}
+	db.todo.findAll({where:where}).then(function(todos) {
+		res.json(todos);
+	}, function(e){
+		res.status(500).send();
+	});
+
+	/*var filteredTodos = todos;
 	if (queryParams.hasOwnProperty('completed') && queryParams.completed === 'true') {
 		filteredTodos = _.where(todos, {
 			completed: true
@@ -32,20 +49,29 @@ app.get('/todos', function(req, res) {
 			return todo.description.toLowerCase().indexOf(queryParams.q.toLowerCase()) > -1;
 		});
 	}
-	res.json(filteredTodos);
+	res.json(filteredTodos);*/
 });
 // GET /todos/:id GET/todos/1
 app.get('/todos/:id', function(req, res) {
 	var todoID = parseInt(req.params.id, 10);
-	var matchedTODO = _.findWhere(todos, {
+	/*var matchedTODO = _.findWhere(todos, {
 		id: todoID
 	});
 	if (matchedTODO) {
 		res.json(matchedTODO);
 	} else {
 		res.status(404).send();
-	}
-})
+	}*/
+	db.todo.findById(todoID).then(function(todoItem) {
+		if (todoItem) {
+			res.json(todoItem.toJSON());
+		} else {
+			res.status(404).send();
+		}
+	}).catch(function(e) {
+		return res.status(500).send();
+	})
+});
 
 // POST, can take data
 // POST /todos/:id <- id generated after todo is created
@@ -65,9 +91,9 @@ app.post('/todos', function(req, res) {
 	db.todo.create({
 		description: body.description,
 		completed: body.completed
-	}).then(function(todo){
+	}).then(function(todo) {
 		return res.status(200).json(todo);
-	}).catch(function(e){
+	}).catch(function(e) {
 		return res.status(400).json(e);
 	})
 });
