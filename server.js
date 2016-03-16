@@ -115,16 +115,16 @@ app.put('/todos/:id', function(req, res) {
 	}
 	db.todo.findById(todoID).then(function(todo) {
 		if (todo) {
-			return todo.update(attribute);
+			todo.update(attribute).then(function(todo) {
+				res.json(todo.toJSON());
+			}, function(e) {
+				res.status(400).json(e);
+			});
 		} else {
 			res.status(404).send();
 		}
 	}, function() {
 		res.status(500).send();
-	}).then(function(todo) {
-		res.json(todo.toJSON());
-	}, function(e) {
-		res.status(400).json(e);
 	});
 });
 
