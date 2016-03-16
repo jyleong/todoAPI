@@ -80,21 +80,22 @@ app.post('/todos', function(req, res) {
 
 app.delete('/todos/:id', function(req, res) {
 	var todoID = parseInt(req.params.id, 10);
-	var matchedTODO = _.findWhere(todos, {
-		id: todoID
+	db.todo.destroy({
+		where: {
+			id: todoID
+		}
+	}).then(function(rowsDeleted){
+		// if 0 id didnt exists, 1 if deleted
+		if (rowsDeleted === 0) {
+			res.status(404).json({
+				error: "No todo with id"
+			});
+		} else {
+			res.status(204).send();
+		}
+	}).catch(function(e) {
+		res.status(500).send();
 	});
-	todos = _.without(todos, {
-		id: todoID
-	});
-	if (matchedTODO) {
-		todos = _.without(todos, matchedTODO);
-		res.json(matchedTODO);
-	} else {
-		res.status(404).json({
-			"error": "no todo found with that id"
-		});
-	}
-	//returm the thing deleted
 });
 
 // PUT /todos/:id
