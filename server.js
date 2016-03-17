@@ -82,7 +82,7 @@ app.post('/users', function(req, res) {
 		email: body.email,
 		password: body.password
 	}).then(function(user) {
-		return res.status(200).json(user);
+		return res.status(200).json(user.toPublicJSON());
 	}).catch(function(e) {
 		return res.status(400).json(e);
 	})
@@ -141,7 +141,7 @@ app.put('/todos/:id', function(req, res) {
 	});
 });
 
-db.sequelize.sync().then(function() {
+db.sequelize.sync({force: true}).then(function() {
 	app.listen(PORT, function() {
 		console.log('Express listening on port: ' + PORT + '!');
 	});
