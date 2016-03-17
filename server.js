@@ -5,6 +5,7 @@ var db = require('./db.js');
 var app = express();
 var PORT = process.env.PORT || 3000;
 // a unique identified like in databases,a description, a completed boolean, a time?
+var bcrypt = require('bcrypt');
 
 app.use(bodyParser.json());
 app.get('/', function(req, res) {
@@ -57,13 +58,6 @@ app.post('/todos', function(req, res) {
 	if (!_.isBoolean(body.completed) || !_.isString(body.description) || body.description.trim().length === 0) {
 		return res.status(400).send();
 	}
-	/*//set body.description to be trimed value
-	body.id = todoNextId++;
-	body.description = body.description.trim();
-
-	todos.push(body);
-	res.json(body);*/
-
 	db.todo.create({
 		description: body.description,
 		completed: body.completed
@@ -141,7 +135,29 @@ app.put('/todos/:id', function(req, res) {
 	});
 });
 
-db.sequelize.sync({force: true}).then(function() {
+// POST /users/login <- new route
+app.post('/users/login', function(req, res) {
+	var body = _.pick(req.body, 'email', 'password');
+	if (typeof body.email !== 'string' || typeof body.password !== 'string') {
+		return res.status(400).send();
+	} // basic validation
+	//res.json(body);
+
+	db.user.findOne({
+		where: {
+			email: body.email
+		}
+	}).then(function(user) {
+		if (!user || !bcrypt.compareSync(body.password, user.get('passwordHash'))) {
+			return res.status(401).send();
+		} 
+		res.json(user.toPublicJSON());
+	}).catch(function(e){
+		return res.status(500).json(e);
+	})
+});
+
+db.sequelize.sync().then(function() {
 	app.listen(PORT, function() {
 		console.log('Express listening on port: ' + PORT + '!');
 	});
