@@ -5,8 +5,6 @@ var db = require('./db.js');
 var app = express();
 var PORT = process.env.PORT || 3000;
 // a unique identified like in databases,a description, a completed boolean, a time?
-var todos = [];
-var todoNextId = 1; // to increment todo id as they get new id
 
 app.use(bodyParser.json());
 app.get('/', function(req, res) {
@@ -75,6 +73,21 @@ app.post('/todos', function(req, res) {
 		return res.status(400).json(e);
 	})
 });
+
+// POST /users/:id <- id generated after todo is created
+app.post('/users', function(req, res) {
+	var body = _.pick(req.body, 'email', 'password');
+
+	db.user.create({
+		email: body.email,
+		password: body.password
+	}).then(function(user) {
+		return res.status(200).json(user);
+	}).catch(function(e) {
+		return res.status(400).json(e);
+	})
+});
+
 
 // DELETE /todos/:id
 
