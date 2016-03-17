@@ -55,15 +55,21 @@ app.get('/todos/:id', middleware.requireAuthentication, function(req, res) {
 // POST /todos/:id <- id generated after todo is created
 app.post('/todos', middleware.requireAuthentication, function(req, res) {
 	var body = _.pick(req.body, 'description', 'completed');
-
-	if (!_.isBoolean(body.completed) || !_.isString(body.description) || body.description.trim().length === 0) {
-		return res.status(400).send();
-	}
-	db.todo.create({
-		description: body.description,
-		completed: body.completed
-	}).then(function(todo) {
-		return res.status(200).json(todo);
+	// db.todo.create({
+	// 	description: body.description,
+	// 	completed: body.completed
+	// }).then(function(todo) {
+	// 	return res.status(200).json(todo);
+	// }).catch(function(e) {
+	// 	return res.status(400).json(e);
+	// })
+//req.user is accessbilel because of middleware
+	db.todo.create(body).then(function(todo) {
+		req.user.addTodo(todo).then(function() {
+			return todo.reload();
+		}).then(function(todo){
+			res.json(todo.toJSON());
+		});
 	}).catch(function(e) {
 		return res.status(400).json(e);
 	})
@@ -152,7 +158,9 @@ app.post('/users/login', function(req, res) {
 
 });
 
-db.sequelize.sync().then(function() {
+db.sequelize.sync({
+	force: true
+}).then(function() {
 	app.listen(PORT, function() {
 		console.log('Express listening on port: ' + PORT + '!');
 	});
