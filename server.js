@@ -60,7 +60,7 @@ app.get('/todos/:id', middleware.requireAuthentication, function(req, res) {
 // POST /todos/:id <- id generated after todo is created
 app.post('/todos', middleware.requireAuthentication, function(req, res) {
 	var body = _.pick(req.body, 'description', 'completed');
-	
+
 	//req.user is accessbilel because of middleware
 	db.todo.create(body).then(function(todo) {
 		req.user.addTodo(todo).then(function() {
@@ -147,17 +147,30 @@ app.put('/todos/:id', middleware.requireAuthentication, function(req, res) {
 // POST /users/login <- new route
 app.post('/users/login', function(req, res) {
 	var body = _.pick(req.body, 'email', 'password');
+	var userInstance;
 	db.user.authenticate(body).then(function(user) {
-		var token = user.generateToken('authentication')
-		if (token) {
-			return res.header('Auth', token).json(user.toPublicJSON());
-		} else {
-			return res.status(401).send();
-		}
-	}, function(e) {
+		var token = user.generateToken('authentication');
+		userInstance = user;
+		// save token into database
+		return db.token.create({
+			token: token
+		});
+	}).then(function(tokenInstance) {
+		res.header('Auth', tokenInstance.get('token')).json(userInstance.toPublicJSON());
+	}).catch(function(e) {
 		res.status(401).json(e);
 	});
 
+});
+
+//DELETE /users/login
+
+app.delete('/users/login', middleware.requireAuthentication, function(req, res) {
+	req.token.destroy().then(function() {
+		return res.status(204).send();
+	}).catch(function() {
+		return res.status(500).send();
+	})
 });
 
 db.sequelize.sync({
