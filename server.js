@@ -16,7 +16,9 @@ app.get('/', function(req, res) {
 // GET /todos?completed=true&q=house
 app.get('/todos', middleware.requireAuthentication, function(req, res) {
 	var query = req.query;
-	var where = {};
+	var where = {
+		userId: req.user.get('id')
+	};
 	if (query.hasOwnProperty('completed') && query.completed === 'true') {
 		where.completed = true;
 	} else if (query.hasOwnProperty('completed') && query.completed === 'false') {
@@ -39,8 +41,11 @@ app.get('/todos', middleware.requireAuthentication, function(req, res) {
 // GET /todos/:id GET/todos/1
 app.get('/todos/:id', middleware.requireAuthentication, function(req, res) {
 	var todoID = parseInt(req.params.id, 10);
-
-	db.todo.findById(todoID).then(function(todoItem) {
+	var where = {
+		userId: req.user.get('id'),
+		id: todoID
+	};
+	db.todo.findOne(where).then(function(todoItem) {
 		if (todoItem) {
 			res.json(todoItem.toJSON());
 		} else {
@@ -55,19 +60,12 @@ app.get('/todos/:id', middleware.requireAuthentication, function(req, res) {
 // POST /todos/:id <- id generated after todo is created
 app.post('/todos', middleware.requireAuthentication, function(req, res) {
 	var body = _.pick(req.body, 'description', 'completed');
-	// db.todo.create({
-	// 	description: body.description,
-	// 	completed: body.completed
-	// }).then(function(todo) {
-	// 	return res.status(200).json(todo);
-	// }).catch(function(e) {
-	// 	return res.status(400).json(e);
-	// })
-//req.user is accessbilel because of middleware
+	
+	//req.user is accessbilel because of middleware
 	db.todo.create(body).then(function(todo) {
 		req.user.addTodo(todo).then(function() {
 			return todo.reload();
-		}).then(function(todo){
+		}).then(function(todo) {
 			res.json(todo.toJSON());
 		});
 	}).catch(function(e) {
@@ -96,7 +94,8 @@ app.delete('/todos/:id', middleware.requireAuthentication, function(req, res) {
 	var todoID = parseInt(req.params.id, 10);
 	db.todo.destroy({
 		where: {
-			id: todoID
+			id: todoID,
+			userId: req.user.get('id')
 		}
 	}).then(function(rowsDeleted) {
 		// if 0 id didnt exists, 1 if deleted
@@ -115,7 +114,10 @@ app.delete('/todos/:id', middleware.requireAuthentication, function(req, res) {
 // PUT /todos/:id
 app.put('/todos/:id', middleware.requireAuthentication, function(req, res) {
 	var todoID = parseInt(req.params.id, 10);
-
+	var where = {
+		id: todoID,
+		userId: req.user.get('id')
+	}
 	var body = _.pick(req.body, 'description', 'completed');
 	var attribute = {};
 
@@ -127,7 +129,7 @@ app.put('/todos/:id', middleware.requireAuthentication, function(req, res) {
 	if (body.hasOwnProperty('description') && _.isString(body.description) && body.description.trim().length > 0) {
 		attribute.description = body.description;
 	}
-	db.todo.findById(todoID).then(function(todo) {
+	db.todo.findOne(where).then(function(todo) {
 		if (todo) {
 			todo.update(attribute).then(function(todo) {
 				res.json(todo.toJSON());
@@ -159,7 +161,7 @@ app.post('/users/login', function(req, res) {
 });
 
 db.sequelize.sync({
-	force: true
+	//force: true
 }).then(function() {
 	app.listen(PORT, function() {
 		console.log('Express listening on port: ' + PORT + '!');
